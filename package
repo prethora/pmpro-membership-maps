@@ -1,4 +1,5 @@
 #!/bin/bash
 
+[[  -d "dist" ]] && rm -rf dist
 mkdir -p dist
-zip -r dist/pmpro-membership-maps.zip css js languages pmpro-membership-maps.php membership-maps-banner.jpg readme.md readme.txt
+zip -r dist/pmpro-membership-maps-fork.zip css js languages pmpro-membership-maps.php membership-maps-banner.jpg readme.md readme.txt

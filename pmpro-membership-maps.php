@@ -3,7 +3,7 @@
  * Plugin Name: Paid Memberships Pro - Membership Maps Add On (FORKED)
  * Plugin URI: https://www.paidmembershipspro.com/add-ons/membership-maps/
  * Description: Display a map of members or for a single member's profile.
- * Version: 0.7.1.1
+ * Version: 0.7.1.2
  * Author: Paid Memberships Pro
  * Author URI: https://www.paidmembershipspro.com
  * Text Domain: pmpro-membership-maps
@@ -33,6 +33,11 @@ function pmpromm_shortcode( $atts ){
 		'circle_radius' => 0,
 		'circle_center_lat' => NULL,
 		'circle_center_lng' => NULL,
+		'circle_fill_color' => 'green',
+		'circle_fill_opacity' => 0.6,
+		'circle_stroke_color' => 'black',
+		'circle_stroke_weight' => 2,
+		'circle_stroke_opacity' => 0.2,
 	), $atts));
 
 	$marker_attributes = apply_filters( 'pmpromm_marker_attributes', array(
@@ -88,6 +93,11 @@ function pmpromm_shortcode( $atts ){
 		'circle_radius' => $circle_radius,
 		'circle_center_lat' => $circle_center_lat,
 		'circle_center_lng' => $circle_center_lng,
+		'circle_fill_color' => $circle_fill_color,
+		'circle_fill_opacity' => $circle_fill_opacity,
+		'circle_stroke_color' => $circle_stroke_color,
+		'circle_stroke_weight' => $circle_stroke_weight,
+		'circle_stroke_opacity' => $circle_stroke_opacity,
 		'infowindow_classes' => pmpromm_get_element_class( 'pmpromm_infowindow' ),
 		'map_styles' => $map_styles		
 	) );
@@ -744,6 +754,22 @@ function pmpromm_show_single_map_profile( $pu ){
 					'circle_center_lat' => $circle_center_lat.'',
 					'circle_center_lng' => $circle_center_lng.'',
 				);
+
+				$circle_styles = apply_filters( 'pmpromm_fork_single_map_circle_styles', array(
+					'fill_color' => 'green',
+					'fill_opacity' => 0.6,
+					'stroke_color' => 'black',
+					'stroke_weight' => 2,
+					'stroke_opacity' => 0.2,
+				), $pu );
+
+				if (is_array($circle_styles)) {
+					if (array_key_exists("fill_color",$circle_styles)) $attributes["circle_fill_color"] = $circle_styles["fill_color"];
+					if (array_key_exists("fill_opacity",$circle_styles)) $attributes["circle_fill_opacity"] = $circle_styles["fill_opacity"];
+					if (array_key_exists("stroke_color",$circle_styles)) $attributes["circle_stroke_color"] = $circle_styles["stroke_color"];
+					if (array_key_exists("stroke_weight",$circle_styles)) $attributes["circle_stroke_weight"] = $circle_styles["stroke_weight"];
+					if (array_key_exists("stroke_opacity",$circle_styles)) $attributes["circle_stroke_opacity"] = $circle_styles["stroke_opacity"];
+				}
 			
 				echo pmpromm_shortcode( $attributes );
 			}
