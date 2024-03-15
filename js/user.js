@@ -76,7 +76,80 @@ jQuery(document).ready(function(){
 
 			
 		}
-
 	}
 
+	var circleRadius = parseFloat(pmpromm_vars.circle_radius);
+	if ((!isNaN(circleRadius)) && (circleRadius>0)) {
+		var centerLat = parseFloat(pmpromm_vars.circle_center_lat);
+		var centerLng = parseFloat(pmpromm_vars.circle_center_lng);
+		var fillColor = pmpromm_vars.circle_fill_color;
+		var fillOpacity = parseFloat(pmpromm_vars.circle_fill_opacity);
+		var strokeColor = pmpromm_vars.circle_stroke_color;
+		var strokeWeight = parseFloat(pmpromm_vars.circle_stroke_weight);
+		var strokeOpacity = parseFloat(pmpromm_vars.circle_stroke_opacity);
+		if (
+			!isNaN(centerLat) && 
+			!isNaN(centerLng) && 
+			(typeof fillColor==="string") && 
+			!isNaN(fillOpacity) && 
+			(typeof strokeColor==="string") && 
+			!isNaN(strokeWeight) && 
+			!isNaN(strokeOpacity)
+		) {
+            var generateCircleCoordinates = function(center, radius) {
+                const numSteps = 3600; // Define the number of points in the circle for smoothness
+                const earthRadiusMiles = 3958.8; // Average radius of the Earth in miles
+                const coordinates = [];
+
+                // Calculate the distance per degree of latitude (constant)
+                const distancePerDegreeLatitude = 69.0; // Roughly 69 miles per degree
+
+                for (let i = 0; i < numSteps; i++) {
+                    const angle = (i * 360 / numSteps) * Math.PI / 180; // Convert angle to radians
+
+                    // Latitude offset in degrees, assuming a constant 69 miles per degree
+                    const latitudeOffset = (radius / distancePerDegreeLatitude);
+
+                    // New latitude after applying the offset
+                    const latitude = center.lat + latitudeOffset * Math.sin(angle);
+
+                    // Adjusting the longitude offset for the Earth's curvature
+                    const radiusAtLatitude = Math.cos(latitude * Math.PI / 180) * earthRadiusMiles;
+                    const longitudeOffsetDegrees = (radius / radiusAtLatitude) * (180 / Math.PI);
+
+                    // New longitude after applying the offset
+                    const longitude = center.lng + longitudeOffsetDegrees * Math.cos(angle);
+
+                    // Adding the calculated point to the coordinates array
+                    coordinates.push([longitude, latitude]);
+                }
+
+                // Ensure the polygon is closed by repeating the first coordinate
+                coordinates.push(coordinates[0]);
+
+                return [coordinates];
+            }
+
+			var geoJsonData = {
+				"type": "Feature",
+				"properties": {},
+				"geometry": {
+					"type": "Polygon",
+					"coordinates": generateCircleCoordinates({lat: centerLat, lng: centerLng},circleRadius)
+				}
+			};
+
+			// Add GeoJSON to the map
+			pmpro_map.data.addGeoJson(geoJsonData);
+
+			// Set style for the GeoJSON polygon
+			pmpro_map.data.setStyle({
+				fillColor: fillColor,
+				fillOpacity: fillOpacity,
+				strokeColor: strokeColor,
+				strokeWeight: strokeWeight,
+				strokeOpacity: strokeOpacity
+			});
+		}				
+	}
 });
