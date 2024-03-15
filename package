@@ -1,0 +1,4 @@
+#!/bin/bash
+
+mkdir -p dist
+zip -r dist/pmpro-membership-maps.zip css js languages pmpro-membership-maps.php membership-maps-banner.jpg readme.md readme.txt

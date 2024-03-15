@@ -1,9 +1,9 @@
 <?php
 /**
- * Plugin Name: Paid Memberships Pro - Membership Maps Add On
+ * Plugin Name: Paid Memberships Pro - Membership Maps Add On (FORKED)
  * Plugin URI: https://www.paidmembershipspro.com/add-ons/membership-maps/
  * Description: Display a map of members or for a single member's profile.
- * Version: 0.7.1
+ * Version: 0.7.1.1
  * Author: Paid Memberships Pro
  * Author URI: https://www.paidmembershipspro.com
  * Text Domain: pmpro-membership-maps
@@ -30,6 +30,9 @@ function pmpromm_shortcode( $atts ){
 		'avatar_align' 	=> NULL,
 		'fields' 		=> NULL,
 		'limit' 		=> 100,
+		'circle_radius' => 0,
+		'circle_center_lat' => NULL,
+		'circle_center_lng' => NULL,
 	), $atts));
 
 	$marker_attributes = apply_filters( 'pmpromm_marker_attributes', array(
@@ -82,10 +85,12 @@ function pmpromm_shortcode( $atts ){
 		'marker_data' => $marker_data,
 		'zoom_level' => $zoom,
 		'max_zoom' => $max_zoom,
+		'circle_radius' => $circle_radius,
+		'circle_center_lat' => $circle_center_lat,
+		'circle_center_lng' => $circle_center_lng,
 		'infowindow_classes' => pmpromm_get_element_class( 'pmpromm_infowindow' ),
 		'map_styles' => $map_styles		
 	) );
-
 
 	wp_enqueue_script( 'pmpro-membership-maps-javascript' );
 
@@ -701,40 +706,52 @@ add_filter( 'pmpro_membership_maps_sql_parts', 'pmpromm_load_profile_map_marker'
 
 //Adds the map to the profile page
 function pmpromm_show_single_map_profile( $pu ){
+	if ( !empty( $pu->ID ) ){
+		$member_address = array(
+			'street' 	=> get_user_meta( $pu->ID, 'pmpro_baddress1', true ) .' '. get_user_meta( $pu->ID, 'pmpro_baddress2', true ),
+			'city' 		=> get_user_meta( $pu->ID, 'pmpro_bcity', true ),
+			'state' 	=> get_user_meta( $pu->ID, 'pmpro_bstate', true ),
+			'zip' 		=> get_user_meta( $pu->ID, 'pmpro_bzipcode', true )
+		);
 
-	if( !empty( $pu->ID ) ){
+		$member_address = apply_filters( 'pmpromm_single_map_address_geocode', $member_address, $pu );
+
+		if (is_array($member_address) && !empty($member_address['street'])) {
+			$address_hash = json_encode($member_address);
+			$prev_address_hash = get_user_meta( $pu->ID, 'pmpro_fork_address_hash', true );
+			if ($address_hash != $prev_address_hash) {
+				$coordinates = pmpromm_geocode_address( $member_address );	
+				if( is_array( $coordinates ) ){
+					$lat = $coordinates['lat'];
+					$lng = $coordinates['lng'];
+					update_user_meta( $pu->ID, 'pmpro_fork_address_hash', $address_hash );
+					update_user_meta( $pu->ID, 'pmpro_lat', $lat );
+					update_user_meta( $pu->ID, 'pmpro_lng', $lng );
+				}				
+			}
+		}
 
 		$lat = get_user_meta( $pu->ID, 'pmpro_lat', true );
 		$lng = get_user_meta( $pu->ID, 'pmpro_lng', true );
-
-		$baddress1 = get_user_meta( $pu->ID, 'pmpro_baddress1', true );
-
-		if( ( empty( $lat ) || empty( $lng ) ) && !empty( $baddress1 ) ){
-			//Coordinates are empty but address isn't, lets try geocode
-			$member_address = array(
-				'street' 	=> $baddress1 .' '. get_user_meta( $pu->ID, 'pmpro_baddress2', true ),
-				'city' 		=> get_user_meta( $pu->ID, 'pmpro_bcity', true ),
-				'state' 	=> get_user_meta( $pu->ID, 'pmpro_bstate', true ),
-				'zip' 		=> get_user_meta( $pu->ID, 'pmpro_bzipcode', true )
-			);
-
-			$member_address = apply_filters( 'pmpromm_single_map_address_geocode', $member_address, $pu );
-
-			$coordinates = pmpromm_geocode_address( $member_address );
-
-			if( is_array( $coordinates ) ){
-				update_user_meta( $pu->ID, 'pmpro_lat', $coordinates['lat'] );
-				update_user_meta( $pu->ID, 'pmpro_lng', $coordinates['lng'] );
-			}
-
-		}
-
+				
 		if( !empty( $lat ) && !empty( $lng ) ){
-			echo do_shortcode( '[pmpro_membership_maps]' );
-		}
-
+			$circle_radius = apply_filters( 'pmpromm_fork_single_map_circle_radius', 0, $pu );
+			$circle_center_lat = $lat;
+			$circle_center_lng = $lng;
+			if (is_numeric($circle_radius) && ($circle_radius > 0) && is_numeric($circle_center_lat) && is_numeric($circle_center_lng)) {
+				$attributes = array(
+					'circle_radius' => $circle_radius.'',
+					'circle_center_lat' => $circle_center_lat.'',
+					'circle_center_lng' => $circle_center_lng.'',
+				);
+			
+				echo pmpromm_shortcode( $attributes );
+			}
+			else {
+				echo do_shortcode( '[pmpro_membership_maps]' );
+			}
+		}		
 	}
-
 }
 add_action( 'pmpro_member_profile_before', 'pmpromm_show_single_map_profile', 10, 1 );
 
